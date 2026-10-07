@@ -37,9 +37,9 @@ The full schema is in `schema.sql`.
 
 | File | Purpose |
 |---|---|
-| `workflows/lead-pipeline.json` | Main intake, scoring and save workflow |
-| `workflows/daily-summary.json` | Scheduled email report |
-| `workflows/error-handler.json` | Logs failures to the `errors` table |
+| `Workflows/lead-pipeline.json` | Main intake, scoring and save workflow |
+| `Workflows/daily-summary.json` | Scheduled email report |
+| `Workflows/error-handler.json` | Logs failures to the `errors` table |
 
 ## Example request
 

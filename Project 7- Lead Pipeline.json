@@ -1,0 +1,400 @@
+{
+  "name": "Project 7- Lead Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-pipeline",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0f00b688-44ae-487a-bc57-59f3519cfdb6",
+      "name": "Webhook",
+      "webhookId": "f27a846e-dc32-49ac-97a6-81dd359319f0"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "126b2445-bfd3-470e-9120-3c5e92718af0",
+              "leftValue": "={{ /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test($json.body.email || '') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        0
+      ],
+      "id": "c18edb05-2db6-41ab-8dc9-13ca2e7daaf8",
+      "name": "Valid email?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"error\",\n  \"message\": \"A valid email address is required.\"\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        448,
+        96
+      ],
+      "id": "79cb8f57-5f19-4707-8571-b04018520033",
+      "name": "Reject invalid email"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "leads",
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "email",
+              "condition": "eq",
+              "keyValue": "={{ $('Webhook').item.json.body.email }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        448,
+        -96
+      ],
+      "id": "dcd74a66-214e-419c-a5e9-9ea2f64db019",
+      "name": "Find existing lead",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "supabaseApi": {
+          "id": "dFcU2yUXhJZY0KSr",
+          "name": "Supabase lead-pipeline"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a6dd603e-623b-468d-b67f-30c352ea6460",
+              "leftValue": "={{ !!$json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        672,
+        -96
+      ],
+      "id": "d46c83e4-6450-4f63-81e6-9269b60561f4",
+      "name": "Already exists?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"duplicate\",\n  \"message\": \"This lead already exists.\"\n}\n",
+        "options": {
+          "responseCode": 409
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        896,
+        -192
+      ],
+      "id": "e7636989-95bf-4ee3-a597-eaff00ac0e99",
+      "name": "Reject duplicate"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a lead qualification assistant. Score this inbound lead from 1 to 10 on how likely they are to become a paying customer for AI automation services. Consider budget, clarity of need, and company type.\n\nName: {{ $('Webhook').item.json.body.name }}\nCompany: {{ $('Webhook').item.json.body.company }}\nMessage: {{ $('Webhook').item.json.body.message }}\n\nReturn a score, a category (hot, warm or cold), and a one-sentence reason.",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        896,
+        0
+      ],
+      "id": "43ab0c3b-3111-445a-b8bd-f0e646c73991",
+      "name": "Score lead",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "model": "nvidia/nemotron-3.5-lightning:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        784,
+        208
+      ],
+      "id": "058d3e47-652c-4f1b-b67c-fac6c2e3b357",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "ZKf2Gs4YnDNoGslM",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"score\": 8,\n  \"category\": \"hot\",\n  \"reason\": \"Clear need and a stated budget.\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        960,
+        208
+      ],
+      "id": "21d9ccf3-ac6c-4fc6-a3bd-56fb190fdff9",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "tableId": "leads",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "email",
+              "fieldValue": "={{ $('Webhook').item.json.body.email }}"
+            },
+            {
+              "fieldId": "name",
+              "fieldValue": "={{ $('Webhook').item.json.body.name }}"
+            },
+            {
+              "fieldId": "company",
+              "fieldValue": "={{ $('Webhook').item.json.body.company }}"
+            },
+            {
+              "fieldId": "message",
+              "fieldValue": "={{ $('Webhook').item.json.body.message }}"
+            },
+            {
+              "fieldId": "score",
+              "fieldValue": "={{ $json.output.score }}"
+            },
+            {
+              "fieldId": "category",
+              "fieldValue": "={{ $json.output.category }}"
+            },
+            {
+              "fieldId": "score_reason",
+              "fieldValue": "={{ $json.output.reason }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        0
+      ],
+      "id": "e82c41d5-0190-42ef-b3c9-c462bb8ee22e",
+      "name": "Save lead",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "supabaseApi": {
+          "id": "dFcU2yUXhJZY0KSr",
+          "name": "Supabase lead-pipeline"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"success\",\n  \"message\": \"Lead captured and scored.\",\n  \"score\": {{ $('Score lead').item.json.output.score }},\n  \"category\": \"{{ $('Score lead').item.json.output.category }}\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1456,
+        32
+      ],
+      "id": "a3bd232b-a6bc-41e8-8a78-4fd9be443f49",
+      "name": "Success response"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Valid email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid email?": {
+      "main": [
+        [
+          {
+            "node": "Find existing lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject invalid email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find existing lead": {
+      "main": [
+        [
+          {
+            "node": "Already exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Already exists?": {
+      "main": [
+        [
+          {
+            "node": "Reject duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Score lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Score lead",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Score lead",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score lead": {
+      "main": [
+        [
+          {
+            "node": "Save lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save lead": {
+      "main": [
+        [
+          {
+            "node": "Success response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "f3WnLKWjHy8tMQET",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "2373ba25-7a5a-4ec2-ad7d-3cbb0f497ca0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ecaeb7af10840ea42a47d10c1d65a9d06e8fb0626832f186215630309e76cb44"
+  },
+  "nodeGroups": [],
+  "id": "rM8PhYqGP7CTXEGR",
+  "tags": []
+}

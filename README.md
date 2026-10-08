@@ -2,6 +2,8 @@
 
 An automated lead intake pipeline. A lead is submitted to a webhook, validated, checked against a database for duplicates, scored by an LLM, saved to Supabase, and answered with a structured response. A second workflow emails a daily summary of new leads, and a third logs any failure.
 
+![AI Lead Pipeline workflow](Lead%20Pipeline%20.png)
+
 ## How it works
 
 1. **Webhook** receives a lead (name, email, company, message).
@@ -36,7 +38,7 @@ The full schema is in `schema.sql`.
 ## Workflows
 
 | File | Purpose |
-|---|---|
+| --- | --- |
 | `Workflows/lead-pipeline.json` | Main intake, scoring and save workflow |
 | `Workflows/daily-summary.json` | Scheduled email report |
 | `Workflows/error-handler.json` | Logs failures to the `errors` table |
@@ -50,7 +52,7 @@ Invoke-RestMethod -Method Post -Uri "<your-n8n-url>/webhook/lead-pipeline" -Cont
 ## Responses
 
 | Case | Status | Body |
-|---|---|---|
+| --- | --- | --- |
 | New valid lead | 200 | status: success, score, category |
 | Invalid or missing email | 400 | status: error |
 | Existing email | 409 | status: duplicate |
@@ -71,6 +73,6 @@ Invoke-RestMethod -Method Post -Uri "<your-n8n-url>/webhook/lead-pipeline" -Cont
 ## Setup
 
 1. Create a Supabase project and run `schema.sql` in the SQL Editor.
-2. Import the three workflow files into n8n.
+2. Import the three workflow files from the `Workflows` folder into n8n.
 3. Create credentials for Supabase (service role key), OpenRouter and Gmail, and connect them to the matching nodes.
 4. Set the error workflow in the main workflow's settings, then publish all three.

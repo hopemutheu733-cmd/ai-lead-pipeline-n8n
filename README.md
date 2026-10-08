@@ -13,6 +13,8 @@ An automated lead intake pipeline. A lead is submitted to a webhook, validated, 
 5. **Save** writes the lead and its score to a Supabase `leads` table.
 6. **Response** returns JSON with the status, score and category (HTTP 200).
 
+<img width="600" height="270" alt=" Lead Table.png " src="https://github.com/user-attachments/assets/b6f0b76c-9a92-4b22-bd55-cf38288506ea" />
+
 ## Reliability
 
 - Retries (3 tries, 2 seconds apart) on the database lookup, the AI step and the save step.
